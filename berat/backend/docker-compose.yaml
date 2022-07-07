@@ -1,0 +1,45 @@
+version: "3.9"
+services:
+  db:
+    image: postgres
+    container_name: sirclo-test-db
+    ports:
+      - '5432:5432'
+    environment:
+      - POSTGRES_DB=sirclo-test
+      - POSTGRES_USER=reza
+      - POSTGRES_PASSWORD=superuser
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    networks:
+      - sirclo
+  migrate:
+    image: migrate/migrate
+    container_name: sirclo-test-migrate
+    depends_on:
+      - db
+    volumes:
+      - ./migrations:/migrations
+    command: ["-path", "/migrations", "-database", "postgres://reza:superuser@db:5432/sirclo-test?sslmode=disable", "up"]
+    links: 
+      - db
+    networks:
+      - sirclo
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: sirclo-test-backend
+    networks:
+      - sirclo
+    ports:
+      - 8000:8000
+    depends_on:
+      - migrate
+    volumes:
+      - ./:/backend
+volumes:
+  pgdata:
+networks:
+  sirclo:
+    driver: bridge
